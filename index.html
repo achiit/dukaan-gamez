@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Ninja: Crazy Quiz Mode!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Custom Fun Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-wiggle { animation: wiggle 2s infinite ease-in-out; }
+        .animate-float { animation: float 3s infinite ease-in-out; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 4px solid white;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1), inset 0 0 0 2px rgba(255,255,255,0.5);
+            border-radius: 1.5rem;
+        }
+
+        .btn-crazy {
+            transition: all 0.2s;
+            box-shadow: 0 6px 0px rgba(0,0,0,0.15);
+        }
+        .btn-crazy:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0px rgba(0,0,0,0.15);
+        }
+
+        .bg-pattern {
+            background-image: radial-gradient(rgba(255,255,255,0.4) 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+
+        /* Confetti elements */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="bg-pattern text-gray-800 flex items-center justify-center p-4">
+
+    <div id="app" class="w-full max-w-2xl relative">
+        <!-- Screens will be injected here by JS -->
+    </div>
+
+    <!-- Hidden audio elements to simulate sound logic visually if needed, but we rely on visual feedback -->
+    
+    <script>
+        // --- 1. GAME DATA: Quirky Questions & Ninja Tricks ---
+        const allQuestions = [
+            {
+                subject: 'Maths',
+                icon: '🧮',
+                question: "If a train leaves Delhi at 60 km/h and your brain leaves the exam hall at 100 km/h, what's the fastest way to square a number ending in 5? (e.g., 35²)",
+                options: ["Multiply by 10", "Multiply first digit by (itself + 1), append 25", "Cry and skip", "Use a calculator"],
+                correct: 1,
+                trick: "🥷 <b>Ninja Trick:</b> For N5², multiply N by (N+1) and slap '25' at the end. Ex: 35² -> 3 x (3+1) = 12. Add 25 -> 1225. Mind = Blown! 🤯"
+            },
+            {
+                subject: 'Reasoning',
+                icon: '🧠',
+                question: "If CAT is coded as 24 and DOG is coded as 26, how is TIGER coded? (Warning: Do not feed the logic!)",
+                options: ["59", "60", "61", "Meow"],
+                correct: 0,
+                trick: "🥷 <b>Ninja Trick:</b> EJOTY (5, 10, 15, 20, 25) is your best friend! C(3)+A(1)+T(20) = 24. TIGER = 20+9+7+5+18 = 59. Memorize EJOTY to decode alphabets instantly! 🐅"
+            },
+            {
+                subject: 'GK',
+                icon: '🌍',
+                question: "Which Indian state has a coastline so incredibly long it makes you tired just looking at it on a map?",
+                options: ["Maharashtra", "Gujarat", "Tamil Nadu", "Andhra Pradesh"],
+                correct: 1,
+                trick: "🥷 <b>Ninja Trick:</b> 'G' for Gujarat, 'G' for Giant coastline (approx 1600 km). It's the longest in India! 🌊"
+            },
+            {
+                subject: 'GS',
+                icon: '🔬',
+                question: "What is the pH of human blood? (Hint: It's slightly basic, just like some of your relatives' taunts!)",
+                options: ["7.0", "7.4", "6.8", "8.2"],
+                correct: 1,
+                trick: "🥷 <b>Ninja Trick:</b> Blood is thicker than water (7.0), so it's slightly higher at 7.4! Keep calm and stay basic. 🩸"
+            },
+            {
+                subject: 'Current Affairs',
+                icon: '📰',
+                question: "Which global group recently added the African Union as a permanent member, making its numerical name technically a lie?",
+                options: ["G7", "G20", "BRICS", "ASEAN"],
+                correct: 1,
+                trick: "🥷 <b>Ninja Trick:</b> G20 became 'G21' in spirit at the 2023 New Delhi summit! The 'G' stands for Group, not 'Gaurav'. 🌍"
+            },
+            {
+                subject: 'Bio',
+                icon: '🧬',
+                question: "Which cellular organelle is basically the Red Bull of your body's energy system?",
+                options: ["Nucleus", "Ribosome", "Mitochondria", "Golgi Apparatus"],
+                correct: 2,
+                trick: "🥷 <b>Ninja Trick:</b> Mito-CHONDRIA sounds like 'Mighty'. It's the mighty powerhouse of the cell making ATP (Energy)! ⚡"
+            },
+            {
+                subject: 'Chem',
+                icon: '🧪',
+                question: "What gas do you get when you aggressively mix an acid with a metal? (Don't try this on your dad's car)",
+                options: ["Oxygen", "Nitrogen", "Hydrogen", "Carbon Dioxide"],
+                correct: 2,
+                trick: "🥷 <b>Ninja Trick:</b> Metal + Acid -> POP! That classic 'pop' sound in lab experiments is Hydrogen gas burning. 💥"
+            },
+            {
+                subject: 'Physics',
+                icon: '🍎',
+                question: "Why does a pencil look magically bent in a glass of water? (No, it's not a glitch in the Matrix)",
+                options: ["Reflection", "Refraction", "Dispersion", "Total Internal Magic"],
+                correct: 1,
+                trick: "🥷 <b>Ninja Trick:</b> Re-FRACT-ion 'fractures' or breaks the straight path of light as it changes medium. Fractured light = bent pencil! ✏️"
+            },
+            {
+                subject: 'English',
+                icon: '📚',
+                question: "Identify the synonym for 'GARRULOUS' (Like that one aunty at the wedding who won't stop gossiping).",
+                options: ["Silent", "Talkative", "Angry", "Hungry"],
+                correct: 1,
+                trick: "🥷 <b>Ninja Trick:</b> GARRULOUS sounds like a 'Garr-Garr' (engine sound) that never stops. Meaning = excessively talkative! 🗣️"
+            }
+        ];
+
+        const subjects = ['Maths', 'Reasoning', 'GK', 'GS', 'Current Affairs', 'Bio', 'Chem', 'Physics', 'English', 'Surprise Me'];
+
+        // --- 2. GAME STATE ---
+        let state = {
+            questions: [],
+            currentIndex: 0,
+            score: 0,
+            selectedSubject: ''
+        };
+
+        const appDiv = document.getElementById('app');
+
+        // --- 3. CORE FUNCTIONS ---
+
+        function init() {
+            renderStartScreen();
+        }
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function startGame(subject) {
+            state.selectedSubject = subject;
+            state.score = 0;
+            state.currentIndex = 0;
+
+            let pool = [...allQuestions];
+            
+            if (subject !== 'Surprise Me') {
+                // Find the specific subject question and put it first
+                const subQ = pool.find(q => q.subject === subject);
+                const others = pool.filter(q => q.subject !== subject);
+                shuffle(others);
+                // Game is 5 questions long. Target subject + 4 randoms.
+                state.questions = [subQ, ...others.slice(0, 4)];
+            } else {
+                shuffle(pool);
+                state.questions = pool.slice(0, 5);
+            }
+
+            renderQuestion();
+        }
+
+        // --- 4. RENDER SCREENS ---
+
+        function renderStartScreen() {
+            const subjectBtns = subjects.map(sub => `
+                <button onclick="startGame('${sub}')" 
+                    class="btn-crazy bg-white text-purple-600 font-bold py-3 px-4 rounded-xl border-2 border-purple-200 hover:bg-purple-50 focus:outline-none flex items-center justify-center gap-2">
+                    ${sub === 'Surprise Me' ? '🎲' : ''} ${sub}
+                </button>
+            `).join('');
+
+            appDiv.innerHTML = `
+                <div class="glass-card p-8 text-center animate-pop-in">
+                    <div class="inline-block bg-yellow-300 text-yellow-900 px-4 py-1 rounded-full font-bold text-sm mb-4 animate-float">
+                        RRB • SSC • PET Ready!
+                    </div>
+                    <h1 class="text-4xl md:text-5xl font-extrabold text-purple-700 mb-2 drop-shadow-sm">
+                        Exam Ninja 🥷
+                    </h1>
+                    <p class="text-gray-600 mb-8 font-semibold text-lg">
+                        Learning made crazy. Pick your poison!
+                    </p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        ${subjectBtns}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQuestion() {
+            const q = state.questions[state.currentIndex];
+            const progress = ((state.currentIndex) / state.questions.length) * 100;
+
+            const optionsHtml = q.options.map((opt, index) => `
+                <button onclick="handleAnswer(${index})" id="opt-${index}"
+                    class="btn-crazy w-full text-left bg-white text-gray-700 font-semibold text-lg py-4 px-6 rounded-2xl border-4 border-gray-100 hover:border-purple-300 focus:outline-none mb-3">
+                    <span class="inline-block bg-purple-100 text-purple-700 w-8 h-8 rounded-full text-center leading-8 mr-3 font-bold">${String.fromCharCode(65 + index)}</span> 
+                    ${opt}
+                </button>
+            `).join('');
+
+            appDiv.innerHTML = `
+                <div class="glass-card p-6 md:p-10 animate-pop-in relative">
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                        <div class="bg-purple-600 h-2.5 rounded-full transition-all duration-500" style="width: ${progress}%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="bg-blue-100 text-blue-800 text-sm font-bold px-3 py-1 rounded-full uppercase tracking-wide flex items-center gap-1">
+                            ${q.icon} ${q.subject}
+                        </span>
+                        <span class="text-gray-500 font-bold">
+                            Question ${state.currentIndex + 1} / ${state.questions.length}
+                        </span>
+                    </div>
+
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-8 leading-tight">
+                        ${q.question}
+                    </h2>
+
+                    <div class="options-container">
+                        ${optionsHtml}
+                    </div>
+                </div>
+
+                <!-- Trick Modal (Hidden initially) -->
+                <div id="trick-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
+                    <div id="trick-card" class="bg-white rounded-3xl p-8 max-w-md w-full text-center border-8 border-yellow-400 transform scale-0 transition-transform duration-300">
+                        <div id="result-icon" class="text-6xl mb-4 animate-wiggle"></div>
+                        <h3 id="result-title" class="text-3xl font-extrabold mb-2"></h3>
+                        <div class="bg-yellow-50 rounded-xl p-4 my-6 text-left border border-yellow-200">
+                            <p id="trick-text" class="text-gray-700 text-lg leading-relaxed"></p>
+                        </div>
+                        <button onclick="nextQuestion()" class="btn-crazy bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xl py-3 px-8 rounded-full w-full">
+                            Got it, Sensei! 🥋
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleAnswer(selectedIndex) {
+            const q = state.questions[state.currentIndex];
+            const isCorrect = selectedIndex === q.correct;
+            
+            // Highlight selected button
+            const selectedBtn = document.getElementById(`opt-${selectedIndex}`);
+            const correctBtn = document.getElementById(`opt-${q.correct}`);
+
+            // Disable all buttons
+            document.querySelectorAll('.options-container button').forEach(btn => btn.disabled = true);
+
+            if (isCorrect) {
+                state.score++;
+                selectedBtn.classList.remove('border-gray-100', 'bg-white');
+                selectedBtn.classList.add('border-green-500', 'bg-green-100', 'text-green-800');
+            } else {
+                selectedBtn.classList.remove('border-gray-100', 'bg-white');
+                selectedBtn.classList.add('border-red-500', 'bg-red-100', 'text-red-800');
+                
+                correctBtn.classList.remove('border-gray-100', 'bg-white');
+                correctBtn.classList.add('border-green-500', 'bg-green-100', 'text-green-800');
+            }
+
+            // Show trick modal after a tiny delay for visual effect
+            setTimeout(() => {
+                showTrickModal(isCorrect, q.trick);
+            }, 600);
+        }
+
+        function showTrickModal(isCorrect, trickHtml) {
+            const modal = document.getElementById('trick-modal');
+            const card = document.getElementById('trick-card');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            const trickText = document.getElementById('trick-text');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Trigger animation
+            setTimeout(() => {
+                card.classList.remove('scale-0');
+                card.classList.add('scale-100');
+            }, 10);
+
+            if (isCorrect) {
+                icon.innerHTML = '🎉';
+                title.innerText = 'Nailed It!';
+                title.classList.add('text-green-500');
+                title.classList.remove('text-red-500');
+                card.classList.replace('border-red-400', 'border-yellow-400');
+            } else {
+                icon.innerHTML = '🤦‍♂️';
+                title.innerText = 'Oopsie!';
+                title.classList.add('text-red-500');
+                title.classList.remove('text-green-500');
+                card.classList.replace('border-yellow-400', 'border-red-400');
+            }
+
+            trickText.innerHTML = trickHtml;
+        }
+
+        function nextQuestion() {
+            const modal = document.getElementById('trick-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            state.currentIndex++;
+            if (state.currentIndex < state.questions.length) {
+                renderQuestion();
+            } else {
+                renderResult();
+            }
+        }
+
+        function renderResult() {
+            const total = state.questions.length;
+            const score = state.score;
+            let message = "";
+            let emoji = "";
+
+            if (score === total) {
+                message = "Exam Topper Material! AIR 1 Confirmed! 🏆";
+                emoji = "🚀";
+            } else if (score >= total - 2) {
+                message = "Solid Effort! Just need a little more chawanprash! 🥣";
+                emoji = "🔥";
+            } else {
+                message = "Time to hit the books... or at least memorize the Ninja Tricks! 😅";
+                emoji = "📚";
+            }
+
+            appDiv.innerHTML = `
+                <div class="glass-card p-10 text-center animate-pop-in">
+                    <div class="text-7xl mb-4 animate-bounce">${emoji}</div>
+                    <h2 class="text-4xl font-extrabold text-purple-800 mb-2">Quiz Complete!</h2>
+                    <p class="text-xl text-gray-600 font-semibold mb-6">Here is your score:</p>
+                    
+                    <div class="flex justify-center items-center gap-4 mb-8">
+                        <div class="bg-purple-100 text-purple-700 w-24 h-24 rounded-full flex items-center justify-center text-4xl font-black shadow-inner border-4 border-purple-300">
+                            ${score}
+                        </div>
+                        <span class="text-2xl font-bold text-gray-400">OUT OF</span>
+                        <div class="bg-gray-100 text-gray-700 w-24 h-24 rounded-full flex items-center justify-center text-4xl font-black shadow-inner border-4 border-gray-300">
+                            ${total}
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-100 border-2 border-yellow-300 rounded-xl p-4 mb-8">
+                        <p class="text-lg text-yellow-800 font-bold">${message}</p>
+                    </div>
+
+                    <button onclick="init()" class="btn-crazy bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-xl py-4 px-10 rounded-full w-full shadow-lg">
+                        Play Again & Get Smarter 🔄
+                    </button>
+                </div>
+            `;
+            
+            // Simple visual confetti effect hack
+            createConfetti();
+        }
+
+        function createConfetti() {
+            for(let i=0; i<50; i++) {
+                const conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.top = -10 + 'px';
+                conf.style.backgroundColor = ['#ff0', '#f0f', '#0ff', '#0f0', '#f00'][Math.floor(Math.random()*5)];
+                conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                conf.style.transition = 'transform 3s linear, top 3s ease-in, opacity 2s ease-out';
+                document.body.appendChild(conf);
+                
+                setTimeout(() => {
+                    conf.style.opacity = 1;
+                    conf.style.top = '100vh';
+                    conf.style.transform = `rotate(${Math.random() * 360}deg) scale(${Math.random() + 0.5})`;
+                }, 50);
+
+                setTimeout(() => {
+                    conf.remove();
+                }, 3000);
+            }
+        }
+
+        // Start the app on load
+        window.onload = init;
+
+    </script>
+</body>
+</html>
+```eof
